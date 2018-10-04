@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2018 Level Up Labs, LLC
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -10,7 +10,7 @@
  *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,9 +18,9 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  */
- 
+
 package polymod.backends;
 
 import haxe.io.Bytes;
@@ -28,7 +28,7 @@ import haxe.xml.Fast;
 import haxe.xml.Printer;
 import polymod.Polymod;
 import polymod.Polymod.PolymodError;
-import polymod.fs.PolymodFileSystem;
+import polymod.fs.IFileSystem;
 import polymod.util.Util;
 import polymod.util.Util.MergeRules;
 import polymod.backends.PolymodAssetLibrary;
@@ -50,10 +50,10 @@ import unifill.Unifill;
 #if !heaps
 class HEAPSBackend extends StubBackend
 {
-    public function new()
+    public function new(fileSystem:IFileSystem)
     {
         super();
-        Polymod.error(FAILED_CREATE_BACKEND,"HEAPSBackend requires the heaps library, did you forget to install it?"); 
+        Polymod.error(FAILED_CREATE_BACKEND,"HEAPSBackend requires the heaps library, did you forget to install it?");
     }
 }
 #else
@@ -86,8 +86,17 @@ class HEAPSBackend implements IBackend
     public var polymodLibrary:PolymodAssetLibrary;
     public var modLoader(default, null):HEAPSModLoader;
     public var fallback(default, null):Loader;
-    
-    public function new (){}
+    public var fileSystem(default, null):IFileSystem;
+
+    public function new (fileSystem:IFileSystem) {
+        this.fileSystem = fileSystem != null
+            ? fileSystem
+            : #if sys
+                new polymod.fs.SysFileSystem();
+            #else
+                new polymod.fs.StubFileSystem();
+            #end
+    }
 
     public function init()
     {
@@ -140,7 +149,7 @@ class HEAPSModLoader extends Loader
     var p:PolymodAssetLibrary;
     var fallback:Loader;
     var hasFallback:Bool;
-    
+
     public function new(backend:HEAPSBackend)
     {
         b = backend;
@@ -196,7 +205,7 @@ class HEAPSModLoader extends Loader
         {
             modText = fallback.load(path).toText();
         }
-        
+
         if (modText != null)
         {
             modText = p.mergeAndAppendText(path, modText);
@@ -240,10 +249,10 @@ class ModFileEntry extends BytesFileEntry
         {
             otherList.push(otherEntry);
         }
-        
+
         var isDir = isPathADirectory(path);
         var dirPath = isDir ? path : Util.uPathPop(fullFilePath);
-        
+
         var itemPaths = [];
         for (id in p.type.keys ())
         {
@@ -254,7 +263,7 @@ class ModFileEntry extends BytesFileEntry
             arr.push(new ModFileEntry(id, null, fs, id));
             itemPaths.push(id);
         }
-        
+
         for (otherEntry in otherList)
         {
             if(itemPaths.indexOf(otherEntry.path) == -1)
@@ -359,7 +368,7 @@ class ModFileSystem implements FileSystem
         var modEntry = new ModFileEntry(path, bytes, this, path);
         return modEntry;
     }
-    
+
     public function exists( path : String ) : Bool
     {
         return b.modLoader.exists(path);

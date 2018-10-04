@@ -24,7 +24,7 @@
 package polymod.util;
 
 import polymod.Polymod;
-import polymod.fs.PolymodFileSystem;
+import polymod.fs.IFileSystem;
 import polymod.Polymod.PolymodError;
 import polymod.Polymod.PolymodErrorType;
 import polymod.util.CSV.CSVParseFormat;
@@ -42,6 +42,7 @@ typedef MergeRules =
 
 class Util
 {
+	public static var fileSystem:IFileSystem = null;
 
 	public static function mergeAndAppendText(baseText:String, id:String, dirs:Array<String>, getModText:String->String->String, mergeRules:MergeRules=null):String
 	{
@@ -533,7 +534,7 @@ class Util
 		#if sys
 		id = stripAssetsPrefix(id);
 		var thePath = uCombine([theDir, sl(), special, sl(), id]);
-		return PolymodFileSystem.exists(thePath);
+		return fileSystem.exists(thePath);
 		#else
 		return false;
 		#end

@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2018 Level Up Labs, LLC
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -10,7 +10,7 @@
  *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,28 +18,30 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  */
- 
+
  package polymod.fs;
 
-class StubFileSystem
+class StubFileSystem implements IFileSystem
 {
-    public static inline function exists( path: String )
+    public function new()
+
+    public function exists( path: String )
         return false;
 
-    public static inline function isDirectory( path: String )
+    public function isDirectory( path: String )
         return false;
 
-    public static inline function readDirectory( path: String ) : Array<String>
+    public function readDirectory( path: String ) : Array<String>
         return [];
 
-    public static inline function getFileContent( path: String )
+    public function getFileContent( path: String )
         return null;
 
-    public static inline function getFileBytes( path: String )
+    public function getFileBytes( path: String )
         return null;
 
-    public static inline function readDirectoryRecursive( path: String )
+    public function readDirectoryRecursive( path: String )
         return [];
 }

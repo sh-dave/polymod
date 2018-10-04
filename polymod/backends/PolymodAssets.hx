@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2018 Level Up Labs, LLC
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -10,7 +10,7 @@
  *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,24 +18,31 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  */
- 
+
 package polymod.backends;
 
 import haxe.io.Bytes;
 import polymod.Polymod.PolymodErrorCode;
 import polymod.backends.IBackend;
+import polymod.fs.IFileSystem;
 import polymod.Polymod.Framework;
 import polymod.util.Util.MergeRules;
 import polymod.backends.PolymodAssetLibrary;
 
 typedef PolymodAssetsParams = {
-   
+
     /**
      * the Haxe framework you're using (OpenFL, HEAPS, Kha, NME, etc..)
      */
     framework:Framework,
+
+    /**
+     * (optional) the filesystem you're using
+     *
+     */
+    ?fileSystem:IFileSystem,
 
     /**
 	 * paths to each mod's root directories.
@@ -54,7 +61,7 @@ typedef PolymodAssetsParams = {
 	?ignoredFiles:Array<String>,
 
      /**
-      * (optional) your own 
+      * (optional) your own
       */
     ?customBackend:Class<IBackend>
 }
@@ -62,6 +69,7 @@ typedef PolymodAssetsParams = {
 class PolymodAssets
 {
     /**PUBLIC STATIC**/
+    public static var fileSystem:IFileSystem;
 
     public static function init(params:PolymodAssetsParams):PolymodAssetLibrary
     {
@@ -77,15 +85,15 @@ class PolymodAssets
         }
         var backend:IBackend = switch(framework)
         {
-            case NME: new polymod.backends.NMEBackend();
-            case OPENFL: new polymod.backends.OpenFLBackend();
-            case LIME: new polymod.backends.LimeBackend();
-            case HEAPS: new polymod.backends.HEAPSBackend();
-            //case KHA: new polymod.backends.KhaBackend();
-            case CUSTOM: 
+            case NME: new polymod.backends.NMEBackend(params.fileSystem);
+            case OPENFL: new polymod.backends.OpenFLBackend(params.fileSystem);
+            case LIME: new polymod.backends.LimeBackend(params.fileSystem);
+            case HEAPS: new polymod.backends.HEAPSBackend(params.fileSystem);
+            case KHA: new polymod.backends.KhaBackend(params.fileSystem);
+            case CUSTOM:
                 if(params.customBackend != null)
                 {
-                    Type.createInstance(params.customBackend,[]);
+                    Type.createInstance(params.customBackend,[params.fileSystem]);
                 }
                 else
                 {
@@ -105,8 +113,11 @@ class PolymodAssets
             library.destroy();
         }
 
+        fileSystem = polymod.util.Util.fileSystem = backend.fileSystem;
+
         library = new PolymodAssetLibrary({
             backend:backend,
+            fileSystem: fileSystem,
             dirs:params.dirs,
             mergeRules:params.mergeRules,
             ignoredFiles:params.ignoredFiles
@@ -130,7 +141,7 @@ class PolymodAssets
         #if heaps
         return HEAPS;
         #end
-        #if nme 
+        #if nme
         return NME;
         #end
         #if (openfl && !nme)

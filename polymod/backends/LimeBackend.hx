@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2018 Level Up Labs, LLC
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -10,7 +10,7 @@
  *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,16 +18,16 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  */
- 
+
 package polymod.backends;
 
 import haxe.xml.Fast;
 import haxe.xml.Printer;
 import polymod.Polymod;
 import polymod.Polymod.PolymodError;
-import polymod.fs.PolymodFileSystem;
+import polymod.fs.IFileSystem;
 import polymod.util.Util;
 import polymod.util.Util.MergeRules;
 import polymod.backends.PolymodAssetLibrary;
@@ -56,10 +56,10 @@ import unifill.Unifill;
 #if (!lime || nme)
 class LimeBackend extends StubBackend
 {
-    public function new()
+    public function new(fileSystem:IFileSystem)
     {
         super();
-        Polymod.error(FAILED_CREATE_BACKEND,"OpenFLBackend requires the openfl library, did you forget to install it?"); 
+        Polymod.error(FAILED_CREATE_BACKEND,"OpenFLBackend requires the openfl library, did you forget to install it?");
     }
 }
 #else
@@ -89,8 +89,17 @@ class LimeBackend implements IBackend
     public var polymodLibrary:PolymodAssetLibrary;
     public var modLibrary(default, null):LimeModLibrary;
     public var fallback(default, null):AssetLibrary;
-    
-    public function new (){}
+    public var fileSystem(default, null):IFileSystem;
+
+    public function new (fileSystem:IFileSystem) {
+        this.fileSystem = fileSystem != null
+            ? fileSystem
+            : #if sys
+                new polymod.fs.SysFileSystem();
+            #else
+                new polymod.fs.StubFileSystem();
+            #end
+    }
 
     public function init()
     {
@@ -192,7 +201,7 @@ class LimeModLibrary extends AssetLibrary
     var fallback:AssetLibrary;
     var hasFallback:Bool;
     var type(default, null):Map<String,AssetType>;
-    
+
     public function new(backend:LimeBackend)
     {
         b = backend;
@@ -288,16 +297,16 @@ class LimeModLibrary extends AssetLibrary
         {
             modText = fallback.getText(id);
         }
-        
+
         if (modText != null)
         {
             modText = p.mergeAndAppendText(id, modText);
         }
-        
+
         return modText;
     }
 
-    public override function loadBytes (id:String):Future<Bytes> 
+    public override function loadBytes (id:String):Future<Bytes>
     {
         //TODO: filesystem
         if (p.check(id))
@@ -352,7 +361,7 @@ class LimeModLibrary extends AssetLibrary
         //TODO: filesystem
         if (p.check(id))
         {
-            //return 
+            //return
             if (pathGroups.exists(p.file(id)))
             {
                 return AudioBuffer.loadFromFiles (pathGroups.get(p.file(id)));
@@ -378,7 +387,7 @@ class LimeModLibrary extends AssetLibrary
             return request.load (paths.get (p.file(id)));
         }
         else if(hasFallback)
-        {	
+        {
             return fallback.loadText(id);
         }
         var request = new HTTPRequest<String> ();
@@ -397,10 +406,10 @@ class LimeModLibrary extends AssetLibrary
     public override function list (type:String):Array<String>
     {
         var otherList = hasFallback ? fallback.list(type) : [];
-        
+
         var requestedType = type != null ? cast (type, AssetType) : null;
         var items = [];
-        
+
         for (id in p.type.keys ())
         {
             if (id.indexOf("_append") == 0 || id.indexOf("_merge") == 0) continue;
@@ -409,7 +418,7 @@ class LimeModLibrary extends AssetLibrary
                 items.push (id);
             }
         }
-        
+
         for (otherId in otherList)
         {
             if (items.indexOf(otherId) == -1)
@@ -420,7 +429,7 @@ class LimeModLibrary extends AssetLibrary
                 }
             }
         }
-        
+
         return items;
     }
 }
