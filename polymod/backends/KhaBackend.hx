@@ -1,26 +1,3 @@
-/**
- * Copyright (c) 2018 Level Up Labs, LLC
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- */
-
 package polymod.backends;
 
 #if kha
@@ -42,7 +19,6 @@ class KhaBackend implements IBackend {
     public var polymodLibrary: PolymodAssetLibrary;
     public var fileSystem(default, null): IFileSystem;
 
-    // var modAssets: Map<String, KhaAsset> = new Map();
     var defaultBlobs: Map<String, Dynamic> = new Map();
     var defaultImages: Map<String, Dynamic> = new Map();
     var defaultSounds: Map<String, Dynamic> = new Map();
@@ -74,7 +50,7 @@ class KhaBackend implements IBackend {
 
         for (file in list) {
             var assetType = polymodLibrary.getType(file);
-            var assetId = AssetIdTools.sanitize(file);
+            var assetId = AssetIdTools.sanitizeUrl(file);
 
             switch assetType {
                 case AUDIO_GENERIC:
@@ -113,32 +89,25 @@ class KhaBackend implements IBackend {
             }
         }
 
-// var id = PolymodKhaTools.sanitizeImage(f);
-// var oldCached = Reflect.field(assets.images, id);
-// var oldDesc = Reflect.copy(Reflect.field(assets.images, '${id}Description'));
+        function inject( todo: Map<String, String>, list: Dynamic, sfn: String -> String ) {
+            for (key in todo.keys()) {
+                var id = sfn(key);
+                var desc = Reflect.field(list, '${id}Description');
 
-// if (!backupImages.exists(id)) {
-//     backupImages.set(id, { cached: oldCached, desc: oldDesc/*, name: name*/ });
-// }
-
-// Reflect.setField(assets.images, id, null); // cleared cache // TODO (DK) unload backup image?
-// var desc = Reflect.field(assets.images, '${id}Description');
-
-// if (desc != null) {
-//     Reflect.setField(desc, 'files', ['${lib.dirs[0]}/$f']);
-// }
-
-        // TODO (DK) unload existing assets?
-
-        // inject modded assets
-        for (blob in moddedBlobs.keys()) {
-            var id = AssetIdTools.sanitize(blob);
-            var desc = Reflect.field(kha.Assets.blobs, '${id}Description');
-
-            if (desc != null) {
-                Reflect.setField(desc, 'files', [blob]); // TODO (DK) directory?
+                if (desc != null) {
+                    Reflect.setField(desc, 'files', [todo.get(key)]);
+                }
             }
         }
+
+        var blobs = kha.Assets.blobs;
+        trace(blobs);
+
+        inject(moddedBlobs, kha.Assets.blobs, AssetIdTools.sanitizeUrl);
+        inject(moddedImages, kha.Assets.images, AssetIdTools.sanitizeImageUrl);
+        inject(moddedFonts, kha.Assets.fonts, AssetIdTools.sanitizeUrl);
+        inject(moddedSounds, kha.Assets.sounds, AssetIdTools.sanitizeUrl);
+        inject(moddedVideos, kha.Assets.videos, AssetIdTools.sanitizeUrl);
 
         // merge and append text files
         // for (key in nme.Assets.info.keys()) {
@@ -172,10 +141,10 @@ class KhaBackend implements IBackend {
     }
 
     public function exists( id: String )
-        return kha.Assets.blobs.get(AssetIdTools.sanitize(id)) != null;
+        return kha.Assets.blobs.get(AssetIdTools.sanitizeUrl(id)) != null;
 
     public function getBytes( id: String ) : Bytes
-        return kha.Assets.blobs.get(AssetIdTools.sanitize(id)).toBytes();
+        return kha.Assets.blobs.get(AssetIdTools.sanitizeUrl(id)).toBytes();
 
     public function getText(id:String)
         return getBytes(id).toString();
