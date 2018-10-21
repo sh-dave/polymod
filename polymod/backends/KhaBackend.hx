@@ -7,24 +7,11 @@ import polymod.backends.kha.AssetIdTools;
 
 using polymod.util.Util;
 
-private enum KhaAsset {
-    Blob( id: String );
-    Font( id: String );
-    Image( id: String );
-    Sound( id: String );
-    Video( id: String );
-}
-
 class KhaBackend implements IBackend {
     public var polymodLibrary: PolymodAssetLibrary;
     public var fileSystem(default, null): IFileSystem;
 
-    var defaultBlobs: Map<String, Dynamic> = new Map();
-    var defaultImages: Map<String, Dynamic> = new Map();
-    var defaultSounds: Map<String, Dynamic> = new Map();
-    var defaultVideos: Map<String, Dynamic> = new Map();
-    var defaultFonts: Map<String, Dynamic> = new Map();
-
+    var backupCallbacks: Array<Void -> Void> = [];
     var moddedBlobs: Map<String, String> = new Map();
     var moddedImages: Map<String, String> = new Map();
     var moddedSounds: Map<String, String> = new Map();
@@ -50,41 +37,29 @@ class KhaBackend implements IBackend {
 
         for (file in list) {
             var assetType = polymodLibrary.getType(file);
-            var assetId = AssetIdTools.sanitizeUrl(file);
 
             switch assetType {
                 case AUDIO_GENERIC:
-                    defaultBlobs.set(file, kha.Assets.blobs.get(assetId));
                     moddedBlobs.set(file, polymodLibrary.file(file));
                 case AUDIO_MUSIC:
-                    defaultSounds.set(file, kha.Assets.sounds.get(assetId));
                     moddedSounds.set(file, polymodLibrary.file(file));
                 case AUDIO_SOUND:
-                    defaultSounds.set(file, kha.Assets.sounds.get(assetId));
                     moddedSounds.set(file, polymodLibrary.file(file));
                 case BYTES:
-                    defaultBlobs.set(file, kha.Assets.blobs.get(assetId));
                     moddedBlobs.set(file, polymodLibrary.file(file));
                 case FONT:
-                    defaultFonts.set(file, kha.Assets.fonts.get(assetId));
                     moddedFonts.set(file, polymodLibrary.file(file));
                 case IMAGE:
-                    defaultImages.set(file, kha.Assets.images.get(assetId));
                     moddedImages.set(file, polymodLibrary.file(file));
                 case MANIFEST:
-                    defaultBlobs.set(file, kha.Assets.blobs.get(assetId));
                     moddedBlobs.set(file, polymodLibrary.file(file));
                 case TEMPLATE:
-                    defaultBlobs.set(file, kha.Assets.blobs.get(assetId));
                     moddedBlobs.set(file, polymodLibrary.file(file));
                 case TEXT:
-                    defaultBlobs.set(file, kha.Assets.blobs.get(assetId));
                     moddedBlobs.set(file, polymodLibrary.file(file));
                 case UNKNOWN:
-                    defaultBlobs.set(file, kha.Assets.blobs.get(assetId));
                     moddedBlobs.set(file, polymodLibrary.file(file));
                 case VIDEO:
-                    defaultVideos.set(file, kha.Assets.videos.get(assetId));
                     moddedVideos.set(file, polymodLibrary.file(file));
             }
         }
@@ -95,6 +70,12 @@ class KhaBackend implements IBackend {
                 var desc = Reflect.field(list, '${id}Description');
 
                 if (desc != null) {
+                    var old = Reflect.field(desc, 'files');
+
+                    backupCallbacks.push(function() {
+                        Reflect.setField(desc, 'files', old);
+                    });
+
                     Reflect.setField(desc, 'files', [todo.get(key)]);
                 }
             }
@@ -150,52 +131,24 @@ class KhaBackend implements IBackend {
         return getBytes(id).toString();
 
     public function clearCache() {
-        // for(key in Assets.info.keys())
-        // {
-        //     var assetInfo = Assets.info.get(key);
-        //     if(assetInfo != null && assetInfo.type == AssetType.IMAGE)
-        //     {
-        //         if(assetInfo.type == AssetType.IMAGE)
-        //         {
-        //             Assets.cache.removeBitmapData(assetInfo.path);
-        //         }
-        //         assetInfo.cache = null;
-        //     }
-        // }
     }
 
-    public function destroy()
-    {
+    public function destroy() {
         restoreDefaultAssets();
         polymodLibrary = null;
-        // modAssets = null;
-        // defaultAssets = null;
     }
 
     function restoreDefaultAssets() {
-        // if (modAssets == null) {
-        //     return;
-        // }
+        for (cb in backupCallbacks) {
+            cb();
+        }
 
-        // for (key in modAssets.keys()) {
-        //     var modAsset = modAssets.get(key);
-
-        //     if (modAsset != null) {
-        //         // nme.Assets.info.remove(key);
-
-        //         // TODO (DK) for all types
-        //         Reflect.deleteField(kha.Assets.blobs, key);
-        //     }
-
-        //     var defaultAsset = defaultAssets.get(key);
-
-        //     if (defaultAsset != null) {
-        //         // nme.Assets.info.set(key, defaultAsset);
-
-        //         // TODO (DK) for all types
-        //         Reflect.setField(kha.Assets.blobs, '', defaultAsset); // TODO (DK) name
-        //     }
-        // }
+        backupCallbacks = [];
+        moddedBlobs = new Map();
+        moddedImages = new Map();
+        moddedSounds = new Map();
+        moddedVideos = new Map();
+        moddedFonts = new Map();
     }
 
     public function stripAssetsPrefix( id: String ) : String {
